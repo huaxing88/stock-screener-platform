@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A股选股平台</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="min-h-screen">
+<!-- Header -->
+<header class="header-bar sticky top-0 z-30 px-6 py-3">
+  <div class="flex items-center justify-between max-w-[1920px] mx-auto">
+    <div class="flex items-center gap-3">
+      <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+      </div>
+      <h1 class="text-base font-semibold tracking-tight" style="color: var(--text-primary);">A股选股平台</h1>
+      <span class="text-[10px] font-medium px-2 py-0.5 rounded-full" style="background: var(--surface-glass); color: var(--text-tertiary); border: 1px solid var(--glass-border);">v1.2</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <label class="text-xs font-medium" style="color: var(--text-tertiary);">选股日期</label>
+      <input type="date" id="screen-date" value="2024-10-15" class="apple-input text-xs">
+      <label class="flex items-center gap-2 text-xs cursor-pointer" style="color: var(--text-secondary);">
+        <input type="checkbox" id="exclude-st" checked class="apple-checkbox">
+        排除ST
+      </label>
+      <select id="market-filter" class="apple-select text-xs">
+        <option value="">全部市场</option>
+        <option value="主板">主板</option>
+        <option value="创业板">创业板</option>
+        <option value="科创板">科创板</option>
+      </select>
+      <div class="divider"></div>
+      <select id="update-market-filter" class="apple-select text-xs" title="更新范围">
+        <option value="">更新范围: 全部市场</option>
+        <option value="主板">更新范围: 主板</option>
+        <option value="创业板">更新范围: 创业板</option>
+        <option value="科创板">更新范围: 科创板</option>
+      </select>
+      <select id="update-mode" class="apple-select text-xs" title="更新模式">
+        <option value="incremental" selected>智能补齐</option>
+        <option value="full">全量刷新</option>
+      </select>
+      <select id="update-workers" class="apple-select text-xs" title="并发数">
+        <option value="4">并发 4</option>
+        <option value="8" selected>并发 8</option>
+        <option value="12">并发 12</option>
+        <option value="16">并发 16</option>
+        <option value="20">并发 20</option>
+        <option value="24">并发 24</option>
+        <option value="32">并发 32</option>
+      </select>
+      <button onclick="startDataUpdate()" id="btn-update-data"
+        class="btn-pill btn-orange flex items-center gap-1.5 text-xs">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        <span>更新数据</span>
+      </button>
+      <span id="data-verify-tag" class="text-[11px] px-2 py-1 rounded-full" style="color: var(--text-tertiary); background: var(--surface-glass); border: 1px solid var(--glass-border);">校验: --</span>
+      <span id="data-status-label" class="text-[11px]" style="color: var(--text-tertiary);"></span>
+    </div>
+  </div>
+</header>
+
+<!-- Main Content -->
+<main class="max-w-[1920px] mx-auto p-4 grid grid-cols-12 gap-4" style="height: calc(100vh - 56px);">
+  <!-- Left Panel: Formula + Results -->
+  <div class="col-span-7 flex flex-col gap-4 overflow-hidden">
+    <!-- Formula Editor -->
+    <div class="glass-panel p-5 flex-shrink-0">
+      <!-- Formula Type Tabs -->
+      <div class="flex items-center gap-2 mb-4">
+        <button onclick="switchTab('tdx')" id="tab-tdx" class="tab-active px-4 py-1.5 rounded-full text-xs font-medium border transition-all duration-200">通达信公式</button>
+        <button onclick="switchTab('python')" id="tab-python" class="tab-inactive px-4 py-1.5 rounded-full text-xs font-medium border transition-all duration-200">Python</button>
+        <button onclick="switchTab('pseudo')" id="tab-pseudo" class="tab-inactive px-4 py-1.5 rounded-full text-xs font-medium border transition-all duration-200">伪代码</button>
+        <div class="flex-1"></div>
+        <select id="template-select" onchange="loadTemplate(this.value)" class="apple-select text-xs max-w-[180px]">
+          <option value="">选择模板...</option>
+        </select>
+      </div>
+      <!-- Editor -->
+      <div class="relative">
+        <textarea id="formula-editor" class="formula-editor w-full p-4" rows="4"
+          placeholder="输入选股公式...&#10;通达信示例: CROSS(MA(CLOSE, 5), MA(CLOSE, 10))&#10;Python示例: cross(ma(close, 5), ma(close, 10))&#10;伪代码示例: 5日均线 上穿 10日均线">CROSS(MA(CLOSE, 5), MA(CLOSE, 10))</textarea>
+        <div id="formula-mask" class="formula-mask" title="公式已遮挡，点击下方按钮显示/隐藏"></div>
+      </div>
+      <!-- Action Buttons -->
+      <div class="flex items-center gap-2.5 mt-4">
+        <button onclick="toggleFormulaMask()" id="btn-toggle-formula-mask" class="btn-pill btn-secondary text-xs" title="显示/隐藏公式">显示公式</button>
+        <button onclick="validateFormula()" class="btn-pill btn-secondary text-xs">验证公式</button>
+        <button onclick="screenStocks()" class="btn-pill btn-primary text-xs font-semibold px-6">开始选股</button>
+        <button onclick="exportCSV()" id="btn-export" class="btn-pill btn-secondary text-xs hidden">导出CSV</button>
+        <div class="divider"></div>
+        <button onclick="openSaveDialog()" class="btn-pill btn-green text-xs">保存策略</button>
+        <button onclick="toggleStrategyPanel()" id="btn-strategies" class="btn-pill btn-secondary text-xs">我的策略 <span id="strategy-count" style="color: var(--text-tertiary);"></span></button>
+        <div class="flex-1"></div>
+        <span id="validate-msg" class="text-xs"></span>
+      </div>
+    </div>
+
+    <!-- Results Summary -->
+    <div id="stats-panel" class="hidden flex-shrink-0 fade-in">
+      <div class="grid grid-cols-4 gap-3">
+        <div class="stat-card p-4">
+          <div class="text-[11px] font-medium mb-2" style="color: var(--text-tertiary);">3日表现</div>
+          <div class="flex justify-between items-end">
+            <span id="stat-avg-3d" class="text-lg font-bold tracking-tight">-</span>
+            <span id="stat-wr-3d" class="text-xs" style="color: var(--text-tertiary);">胜率 -</span>
+          </div>
+        </div>
+        <div class="stat-card p-4">
+          <div class="text-[11px] font-medium mb-2" style="color: var(--text-tertiary);">5日表现</div>
+          <div class="flex justify-between items-end">
+            <span id="stat-avg-5d" class="text-lg font-bold tracking-tight">-</span>
+            <span id="stat-wr-5d" class="text-xs" style="color: var(--text-tertiary);">胜率 -</span>
+          </div>
+        </div>
+        <div class="stat-card p-4">
+          <div class="text-[11px] font-medium mb-2" style="color: var(--text-tertiary);">10日表现</div>
+          <div class="flex justify-between items-end">
+            <span id="stat-avg-10d" class="text-lg font-bold tracking-tight">-</span>
+            <span id="stat-wr-10d" class="text-xs" style="color: var(--text-tertiary);">胜率 -</span>
+          </div>
+        </div>
+        <div class="stat-card p-4">
+          <div class="text-[11px] font-medium mb-2" style="color: var(--text-tertiary);">15日内最高涨幅</div>
+          <div class="flex justify-between items-end">
+            <span id="stat-avg-max15d" class="text-lg font-bold tracking-tight">-</span>
+            <span id="stat-wr-max15d" class="text-xs" style="color: var(--text-tertiary);">胜率 -</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results Table -->
+    <div class="glass-panel flex-1 overflow-hidden flex flex-col min-h-0">
+      <div class="flex items-center justify-between px-5 py-3" style="border-bottom: 1px solid var(--glass-border);">
+        <span class="text-xs font-semibold tracking-wide" style="color: var(--text-secondary);">选股结果</span>
+        <span id="result-count" class="text-xs" style="color: var(--text-tertiary);">等待选股...</span>
+      </div>
+      <div class="overflow-auto flex-1">
+        <table class="w-full text-xs">
+          <thead class="sticky top-0 z-10" style="background: rgba(28, 28, 30, 0.95); backdrop-filter: blur(20px);">
+            <tr style="border-bottom: 1px solid var(--glass-border);">
+              <th class="text-left px-4 py-2.5 font-medium w-10" style="color: var(--text-tertiary);">#</th>
+              <th class="text-left px-4 py-2.5 font-medium" style="color: var(--text-tertiary);">代码</th>
+              <th class="text-left px-4 py-2.5 font-medium" style="color: var(--text-tertiary);">名称</th>
+              <th class="text-right px-4 py-2.5 font-medium" style="color: var(--text-tertiary);">当日价格</th>
+              <th class="text-right px-4 py-2.5 font-medium" style="color: var(--text-tertiary);">3日涨幅<button class="sort-btn" id="sort-btn-return_3d" onclick="toggleReturnSort('return_3d')" title="排序：降序/升序/默认">↕</button></th>
+              <th class="text-right px-4 py-2.5 font-medium" style="color: var(--text-tertiary);">5日涨幅<button class="sort-btn" id="sort-btn-return_5d" onclick="toggleReturnSort('return_5d')" title="排序：降序/升序/默认">↕</button></th>
+              <th class="text-right px-4 py-2.5 font-medium" style="color: var(--text-tertiary);">10日涨幅<button class="sort-btn" id="sort-btn-return_10d" onclick="toggleReturnSort('return_10d')" title="排序：降序/升序/默认">↕</button></th>
+              <th class="text-right px-4 py-2.5 font-medium" style="color: var(--text-tertiary);">15日内最高涨幅<button class="sort-btn" id="sort-btn-return_max15d" onclick="toggleReturnSort('return_max15d')" title="排序：降序/升序/默认">↕</button></th>
+            </tr>
+          </thead>
+          <tbody id="results-body">
+            <tr><td colspan="8" class="text-center py-16 text-xs" style="color: var(--text-tertiary);">输入公式并点击「开始选股」</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Panel: Chart + Histogram -->
+  <div class="col-span-5 flex flex-col gap-4 overflow-hidden">
+    <!-- K-line Chart -->
+    <div class="glass-panel flex-1 min-h-0 flex flex-col">
+      <div class="flex items-center justify-between px-5 py-3" style="border-bottom: 1px solid var(--glass-border);">
+        <span id="kline-title" class="text-xs font-semibold tracking-wide" style="color: var(--text-secondary);">K线图</span>
+        <span id="kline-subtitle" class="text-[11px]" style="color: var(--text-tertiary);"></span>
+      </div>
+      <div id="kline-container" class="flex-1" style="min-height:400px;height:100%;"></div>
+    </div>
+
+    <!-- Return Distribution Histogram -->
+    <div class="glass-panel h-[240px] flex-shrink-0 flex flex-col">
+      <div class="px-5 py-3 flex items-center gap-3" style="border-bottom: 1px solid var(--glass-border);">
+        <span class="text-xs font-semibold tracking-wide" style="color: var(--text-secondary);">收益分布</span>
+        <select id="hist-horizon" onchange="renderHistogram()" class="apple-select text-[11px] py-1 px-2">
+          <option value="return_3d">3日</option>
+          <option value="return_5d" selected>5日</option>
+          <option value="return_10d">10日</option>
+          <option value="return_max15d">15日内最高</option>
+        </select>
+      </div>
+      <div id="histogram-container" class="flex-1"></div>
+    </div>
+  </div>
+</main>
+
+<!-- Save Strategy Dialog -->
+<div id="save-dialog" class="fixed inset-0 dialog-backdrop flex items-center justify-center z-40 hidden">
+  <div class="dialog-content p-7 w-[440px] fade-in">
+    <h3 class="text-sm font-semibold mb-5" style="color: var(--text-primary);">保存选股策略</h3>
+    <input type="hidden" id="save-strategy-id" value="">
+    <div class="space-y-4">
+      <div>
+        <label class="block text-[11px] font-medium mb-1.5" style="color: var(--text-tertiary);">策略名称 <span style="color: var(--red-accent);">*</span></label>
+        <input type="text" id="save-name" placeholder="例: MACD底部金叉" class="apple-input w-full text-sm">
+      </div>
+      <div>
+        <label class="block text-[11px] font-medium mb-1.5" style="color: var(--text-tertiary);">备注说明</label>
+        <input type="text" id="save-desc" placeholder="可选的备注信息" class="apple-input w-full text-sm">
+      </div>
+      <div class="glass-panel-subtle p-3">
+        <div class="flex items-center gap-2 mb-1.5">
+          <span class="text-[10px] font-medium px-2 py-0.5 rounded-full" style="background: var(--surface-glass); color: var(--text-tertiary);" id="save-formula-type-label">TDX</span>
+          <span class="text-[10px]" style="color: var(--text-tertiary);" id="save-filter-label"></span>
+        </div>
+        <pre class="text-xs font-mono whitespace-pre-wrap max-h-[80px] overflow-auto" style="color: var(--text-secondary);" id="save-formula-preview"></pre>
+      </div>
+    </div>
+    <div class="flex justify-end gap-2.5 mt-6">
+      <button onclick="closeSaveDialog()" class="btn-pill btn-secondary text-xs">取消</button>
+      <button onclick="confirmSaveStrategy()" class="btn-pill btn-green text-xs font-semibold px-6">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Strategy Panel (slide-in from right) -->
+<div id="strategy-panel" class="fixed top-0 right-0 h-full w-[380px] border-l z-30 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col" style="border-color: var(--glass-border);">
+  <div class="flex items-center justify-between px-5 py-4" style="border-bottom: 1px solid var(--glass-border);">
+    <h3 class="text-sm font-semibold" style="color: var(--text-primary);">我的策略</h3>
+    <button onclick="toggleStrategyPanel()" class="w-7 h-7 rounded-full flex items-center justify-center transition-colors" style="color: var(--text-tertiary); background: var(--surface-glass);"
+      onmouseenter="this.style.background='rgba(255,255,255,0.1)'" onmouseleave="this.style.background='var(--surface-glass)'">&times;</button>
+  </div>
+  <div id="strategy-list" class="flex-1 overflow-auto p-4 space-y-3">
+    <div class="text-center py-12 text-xs" style="color: var(--text-tertiary);">暂无保存的策略</div>
+  </div>
+</div>
+<!-- Strategy panel backdrop -->
+<div id="strategy-backdrop" class="fixed inset-0 z-20 hidden" style="background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);" onclick="toggleStrategyPanel()"></div>
+
+<!-- Data Update Progress Dialog -->
+<div id="update-dialog" class="fixed inset-0 dialog-backdrop flex items-center justify-center z-50 hidden">
+  <div class="dialog-content p-7 w-[500px] fade-in">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="text-sm font-semibold" style="color: var(--text-primary);">数据更新</h3>
+      <button onclick="closeUpdateDialog()" id="btn-close-update" class="w-7 h-7 rounded-full flex items-center justify-center transition-colors hidden" style="color: var(--text-tertiary); background: var(--surface-glass);"
+        onmouseenter="this.style.background='rgba(255,255,255,0.1)'" onmouseleave="this.style.background='var(--surface-glass)'">&times;</button>
+    </div>
+    <div class="space-y-3">
+      <div class="flex items-center justify-between text-xs">
+        <span style="color: var(--text-secondary);" id="update-status-text">Preparing...</span>
+        <span style="color: var(--text-tertiary);" id="update-progress-text">0 / 0</span>
+      </div>
+      <div class="w-full rounded-full h-2 overflow-hidden" style="background: rgba(255,255,255,0.06);">
+        <div id="update-progress-bar" class="update-progress-bar h-full rounded-full" style="width: 0%; background: var(--orange-accent);"></div>
+      </div>
+      <div class="text-[11px]" style="color: var(--text-tertiary);" id="update-current-stock">--</div>
+      <div id="update-log" class="glass-panel-subtle p-3 h-[180px] overflow-auto text-[11px] font-mono space-y-0.5" style="color: var(--text-tertiary);"></div>
+    </div>
+    <div class="flex justify-end mt-5">
+      <span id="update-result-msg" class="text-xs" style="color: var(--text-secondary);"></span>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loading-overlay" class="fixed inset-0 dialog-backdrop flex items-center justify-center z-50 hidden">
+  <div class="dialog-content p-10 text-center fade-in" style="min-width: 360px;">
+    <div class="flex justify-end mb-2">
+      <button id="loading-cancel-btn" onclick="cancelScreening()" class="w-7 h-7 rounded-full flex items-center justify-center transition-colors" style="color: var(--text-tertiary); background: var(--surface-glass);"
+        onmouseenter="this.style.background='rgba(255,255,255,0.1)'" onmouseleave="this.style.background='var(--surface-glass)'" title="取消选股">&times;</button>
+    </div>
+    <div class="apple-spinner mx-auto mb-5"></div>
+    <div class="text-sm font-medium" id="loading-text" style="color: var(--text-primary);">正在选股...</div>
+    <div class="text-xs mt-2" id="loading-sub" style="color: var(--text-tertiary);">扫描股票中</div>
+    <div id="loading-progress-wrap" class="mt-4 hidden">
+      <div class="w-full rounded-full h-1.5 overflow-hidden" style="background: rgba(255,255,255,0.06);">
+        <div id="loading-progress-bar" class="h-full rounded-full transition-all duration-300" style="width: 0%; background: var(--blue-accent);"></div>
+      </div>
+      <div class="flex justify-between mt-2">
+        <span id="loading-progress-detail" class="text-[11px]" style="color: var(--text-tertiary);">0 / 0</span>
+        <span id="loading-progress-matched" class="text-[11px]" style="color: var(--text-tertiary);">匹配 0 只</span>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="/static/js/utils.js"></script>
+<script src="/static/js/chart.js"></script>
+<script src="/static/js/table.js"></script>
+<script src="/static/js/screen.js"></script>
+<script src="/static/js/strategy.js"></script>
+<script src="/static/js/data-update.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

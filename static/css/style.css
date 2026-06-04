@@ -1,0 +1,316 @@
+/* === Apple-Inspired Styles === */
+
+/* --- Base & Typography --- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bg-base: #000000;
+  --bg-elevated: rgba(28, 28, 30, 0.72);
+  --bg-secondary: rgba(44, 44, 46, 0.65);
+  --bg-tertiary: rgba(58, 58, 60, 0.5);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-hover: rgba(255, 255, 255, 0.14);
+  --text-primary: #f5f5f7;
+  --text-secondary: rgba(245, 245, 247, 0.6);
+  --text-tertiary: rgba(245, 245, 247, 0.35);
+  --accent: #0A84FF;
+  --accent-hover: #409CFF;
+  --accent-glow: rgba(10, 132, 255, 0.25);
+  --green-accent: #30D158;
+  --orange-accent: #FF9F0A;
+  --red-accent: #FF453A;
+  --surface-glass: rgba(255, 255, 255, 0.04);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Inter', 'Helvetica Neue', sans-serif;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* --- Frosted Glass Panels --- */
+.glass-panel {
+  background: var(--bg-elevated);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+}
+
+.glass-panel-subtle {
+  background: var(--surface-glass);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+}
+
+/* --- Formula Editor --- */
+.formula-editor {
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
+  font-size: 13.5px;
+  resize: vertical;
+  tab-size: 4;
+  line-height: 1.7;
+  letter-spacing: 0.01em;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  color: var(--text-primary);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.formula-editor:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.formula-editor::placeholder { color: var(--text-tertiary); }
+
+.formula-mask {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background:
+    radial-gradient(120% 80% at 20% 10%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 38%, rgba(0,0,0,0.55) 100%),
+    linear-gradient(135deg, rgba(18, 18, 22, 0.88), rgba(12, 12, 16, 0.92));
+  backdrop-filter: blur(18px) saturate(90%);
+  -webkit-backdrop-filter: blur(18px) saturate(90%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.formula-mask.hidden { display: none; }
+
+/* --- Tab Buttons --- */
+.tab-active {
+  background: var(--accent);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+.tab-inactive {
+  background: var(--surface-glass);
+  color: var(--text-secondary);
+  border-color: var(--glass-border);
+}
+.tab-inactive:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+/* --- Stat Cards --- */
+.stat-card {
+  background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.stat-card:hover {
+  border-color: var(--glass-border-hover);
+  transform: translateY(-1px);
+}
+
+/* --- Results Table --- */
+.result-row:hover { background: rgba(255, 255, 255, 0.04) !important; }
+.result-row { transition: background 0.15s ease; }
+
+/* --- Stock Colors (Red=Up, Green=Down) --- */
+.text-up { color: #FF453A; }
+.text-down { color: #30D158; }
+.bg-up { background-color: rgba(255, 69, 58, 0.12); }
+.bg-down { background-color: rgba(48, 209, 88, 0.12); }
+
+/* --- Loading / Animation --- */
+#loading-overlay { transition: opacity 0.3s ease; }
+.fade-in { animation: fadeIn 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* --- Scrollbar --- */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+/* --- Strategy Panel --- */
+#strategy-panel {
+  backdrop-filter: blur(60px) saturate(200%);
+  -webkit-backdrop-filter: blur(60px) saturate(200%);
+  background: rgba(28, 28, 30, 0.88);
+}
+#strategy-panel.open { transform: translateX(0); }
+.strategy-card {
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+}
+.strategy-card:hover {
+  border-color: var(--accent);
+  background: rgba(10, 132, 255, 0.06);
+  transform: translateY(-1px);
+}
+
+/* --- Progress Bar --- */
+.update-progress-bar { transition: width 0.3s ease; }
+
+/* --- Pill Buttons --- */
+.btn-pill {
+  border-radius: 980px;
+  font-weight: 500;
+  font-size: 13px;
+  padding: 7px 18px;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+  letter-spacing: -0.01em;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 12px var(--accent-glow);
+}
+.btn-primary:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 4px 20px var(--accent-glow);
+  transform: scale(1.02);
+}
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+.btn-secondary:hover { background: rgba(255, 255, 255, 0.14); }
+.btn-green {
+  background: rgba(48, 209, 88, 0.15);
+  color: var(--green-accent);
+}
+.btn-green:hover { background: rgba(48, 209, 88, 0.25); }
+.btn-orange {
+  background: rgba(255, 159, 10, 0.15);
+  color: var(--orange-accent);
+}
+.btn-orange:hover { background: rgba(255, 159, 10, 0.25); }
+
+.sort-btn {
+  margin-left: 6px;
+  font-size: 10px;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+.sort-btn:hover { color: var(--text-primary); }
+
+/* --- Inputs --- */
+.apple-input {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-size: 13px;
+  padding: 7px 14px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  outline: none;
+}
+.apple-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.apple-input::placeholder { color: var(--text-tertiary); }
+
+.apple-select {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  padding: 7px 14px;
+  transition: border-color 0.2s ease;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8.5L1.5 4h9L6 8.5z' fill='%23999'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 30px;
+}
+.apple-select:focus { border-color: var(--accent); }
+
+/* --- Dialog --- */
+.dialog-backdrop {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.dialog-content {
+  background: rgba(44, 44, 46, 0.92);
+  backdrop-filter: blur(60px) saturate(180%);
+  -webkit-backdrop-filter: blur(60px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+}
+
+/* --- Checkbox --- */
+.apple-checkbox {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+.apple-checkbox:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.apple-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 5px;
+  height: 9px;
+  border: solid #fff;
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+
+/* --- Spinner --- */
+.apple-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* --- Header --- */
+.header-bar {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* --- Divider --- */
+.divider {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.1);
+}
